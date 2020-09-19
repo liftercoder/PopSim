@@ -5,8 +5,14 @@
 var config = {
     gridWidth: 800,
     gridHeight: 600,
-    cellWidth: 10,
-    cellHeight: 10
+    cellWidth: 25,
+    cellHeight: 25,
+    cellColors: ['#177e03', '#2bbe01', '#24db49', '#26a5d9']
+};
+
+config.getRandomCellColor = function () {
+    var total = this.cellColors.length - 1;
+    return this.cellColors[Math.round(Math.random() * total)];
 };
 
 var grid = document.getElementById("grid");
@@ -23,6 +29,7 @@ function Cell(id) {
     this.element.className = this.className;
     this.element.style.width = this.getCSSWidth();
     this.element.style.height = this.getCSSHeight();
+    this.element.style.backgroundColor = config.getRandomCellColor();
     var self = this;
     this.element.addEventListener("click", function () { self.getElement().style.backgroundColor = "#000"; });
 }

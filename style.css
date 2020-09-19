@@ -4,14 +4,15 @@
 }
 
 #grid {
-
+    display:block;
+    margin:auto;
+    margin-top:5%;
 }
 
 .gridCell {
-    background-color: #177e03;
     display:block; float:left;
 }
 
 .gridCell:hover {
-    background-color: #2bbe01;
+    background-color: #ccc;
 }
