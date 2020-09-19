@@ -1,0 +1,17 @@
+* {
+    margin:0;
+    padding:0;
+}
+
+#grid {
+
+}
+
+.gridCell {
+    background-color: #177e03;
+    display:block; float:left;
+}
+
+.gridCell:hover {
+    background-color: #2bbe01;
+}
