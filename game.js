@@ -6,18 +6,12 @@ var initialCell;
 
 var config = {
     gridWidth: 800,
-    gridHeight: 600,
-    cellWidth: 5,
-    cellHeight: 5,
-    cellColors: ['#177e03', '#2bbe01', '#24db49', '#26a5d9'],
-    cellTypes: [
-        { color: "#177e03", name: "DarkGreen", replicationChance: 10 },
-        { color: "#2bbe01", name: "MidGreen", replicationChance: 5 },
-        { color: "#24db49", name: "LightGreen", replicationChance: 0 }
-    ],
-    liveCellType: { color: "#000", name: "LiveCell", replicationChance: 0 },
-    deadCellType: { color: "#26a5d9", name: "DeadCell", replicationChance: 0 },
-    gameSpeedMilliSec: 100
+    gridHeight: 800,
+    cellWidth: 10,
+    cellHeight: 10,
+    liveCellType: { id: 1, color: "#fff", name: "LiveCell" },
+    emptyCellType: { id: 2, color: "#000", name: "EmptyCell" },
+    gameSpeedMilliSec: 30
 };
 
 config.getRandomInt = function (max) {
@@ -36,67 +30,82 @@ grid.numCellsInRow = config.gridWidth / config.cellWidth;
 
 grid.gameCells = [];
 
-grid.addInitialCell = function (cell) {
+var numLiveCells = 0;
 
-    if (!initialCell) {
+grid.addLiveCell = function (cell) {
 
-        cell.type = config.liveCellType;
+    cell.type = config.liveCellType;
+    numLiveCells++;
+    cell.draw();
+    updateLiveCellCounter();
 
-        initialCell = cell;
+};
 
-        cell.draw();
+function getNumNearbyLiveCells(nearbyCells) {
 
-        /* Update */
+    var numNearbyLiveCells = 0;
 
-        var update = function () {
+    for (var i = 0; i < nearbyCells.length; i++) {
 
-            for (var j = 0; j < this.gameCells.length; j++) {
+        if (nearbyCells[i] === undefined) {
+            continue;
+        }
 
-                var cell = this.gameCells[j];
+        if (nearbyCells[i].type.id === config.liveCellType.id) {
+            numNearbyLiveCells++;
+        }
+    }
 
-                // If this cell isn't live, skip
-                if (cell.type !== config.liveCellType) {
-                    continue;
+    return numNearbyLiveCells;
+}
+
+var liveCellCounter = document.getElementById("liveCellCounter").children[0];
+
+function updateLiveCellCounter() {
+    liveCellCounter.innerHTML = numLiveCells;
+}
+
+grid.start = function () {
+
+    var update = function () {
+
+        updateLiveCellCounter();
+
+        for (var j = 0; j < this.gameCells.length; j++) {
+
+            var cell = this.gameCells[j];
+
+            var numNearbyLiveCells = getNumNearbyLiveCells(cell.getNearbyCells());
+
+            if (cell.type.id === config.liveCellType.id) {
+
+                if (numNearbyLiveCells < 2 || numNearbyLiveCells > 3) {
+                    cell.futureType = config.emptyCellType;
                 }
 
-                var nearbyCells = cell.getNearbyCells();
+            }
 
-                var numNearbyLiveCells = 0;
-
-                for (var i = 0; i < nearbyCells.length; i++) {
-                    if (nearbyCells[i] !== undefined && nearbyCells[i].type === config.liveCellType) {
-                        numNearbyLiveCells++;
-                    }
-                }
-
-                if (numNearbyLiveCells > 1) {
-                    cell.type = cell.initialType;
-                    cell.draw();
-                    continue;
-                }
-
-                for (var i = 0; i < nearbyCells.length; i++) {
-
-                    // If nearby cell isn't a cell, skip
-                    if (nearbyCells[i] === undefined) {
-                        continue;
-                    }
-
-                    var nearbyCell = nearbyCells[i];
-                    var dieRoll = config.getRandomInt(100);
-                    var replicateCell = nearbyCell.type.replicationChance > dieRoll;
-
-                    if (replicateCell) {
-                        nearbyCell.type = config.liveCellType;
-                        nearbyCell.draw();
-                    }
+            if(cell.type.id === config.emptyCellType.id) {
+                if (numNearbyLiveCells === 3) {
+                    cell.futureType = config.liveCellType;
                 }
             }
-        }.bind(this);
+        }
 
-        setInterval(update, config.gameSpeedMilliSec);
-    }
+        for (var j = 0; j < this.gameCells.length; j++) {
+
+            var cell = this.gameCells[j];
+            cell.type = cell.futureType || cell.type;
+            cell.draw();
+        }
+
+    }.bind(this);
+
+    setInterval(update, config.gameSpeedMilliSec);
 };
+
+document.getElementById("startButton").addEventListener("click", function () { grid.start(); });
+
 
 var numCells = (config.gridWidth / config.cellWidth) * (config.gridHeight / config.cellHeight);
 
@@ -104,7 +113,7 @@ function Cell(id) {
 
     var self = this;
 
-    this.type = config.getRandomCellType();
+    this.type = config.emptyCellType;
     this.initialType = this.type;
     this.element = document.createElement("div");
     this.id = id;
@@ -115,17 +124,29 @@ function Cell(id) {
     this.element.style.backgroundColor = this.type.color;
 
     this.element.addEventListener("click", function () {
-        grid.addInitialCell(self);
+        grid.addLiveCell(self);
     });
 }
 
 Cell.prototype.width = config.cellWidth;
 Cell.prototype.height = config.cellHeight;
-Cell.prototype.getCSSWidth = function () { return this.width + "px"; };
-Cell.prototype.getCSSHeight = function () { return this.height + "px"; };
+
+Cell.prototype.getCSSWidth = function () {
+    return this.width + "px";
+};
+Cell.prototype.getCSSHeight = function () {
+    return this.height + "px";
+};
+
 Cell.prototype.className = "gridCell";
-Cell.prototype.getElement = function () { return this.element; };
-Cell.prototype.draw = function () { this.getElement().style.backgroundColor = this.type.color; };
+
+Cell.prototype.getElement = function () {
+    return this.element;
+};
+
+Cell.prototype.draw = function () {
+    this.getElement().style.backgroundColor = this.type.color;
+};
 
 Cell.prototype.getNearbyCells = function () {
     return [
@@ -134,7 +155,7 @@ Cell.prototype.getNearbyCells = function () {
         grid.gameCells[(this.id + 1) - grid.numCellsInRow],
         grid.gameCells[this.id - 1],
         grid.gameCells[this.id + 1],
-        grid.gameCells[this.id + grid.numCellsInRow - 1],
+        grid.gameCells[(this.id + grid.numCellsInRow) - 1],
         grid.gameCells[this.id + grid.numCellsInRow],
         grid.gameCells[this.id + grid.numCellsInRow + 1],
     ];
